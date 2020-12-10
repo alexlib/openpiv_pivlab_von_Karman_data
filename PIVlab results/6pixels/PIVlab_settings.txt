@@ -1,0 +1,7 @@
+FFT window deformation
+Pass1: 64x64 px with 50% overlap
+Pass2: 32x32 px with 50% overlap
+Pass3: 16x16 px with 50% overlap
+Pass4: 6x6 px with 50% overlap
+Gauss2x3-point subpixel estimator
+Correlation quality: Extreme

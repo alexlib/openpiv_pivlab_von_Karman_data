@@ -1,2 +1,4 @@
-./OpenPIV/.ipynb_checkpoints/*OpenPIV/.ipynb_checkpoints/
-OpenPIV/.ipynb_checkpoints/
+notebooks/results/
+.venv/
+__marimo__/
+__pycache__/

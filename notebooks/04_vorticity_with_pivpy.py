@@ -11,7 +11,10 @@
 import marimo
 
 __generated_with = "0.24.0"
-app = marimo.App(width="medium")
+app = marimo.App(
+    width="medium",
+    layout_file="layouts/04_vorticity_with_pivpy.slides.json",
+)
 
 
 @app.cell
@@ -32,30 +35,28 @@ def _():
 
 @app.cell
 def _(mo):
-    mo.md(
-        r"""
-        # 4. Vorticity with pivpy
+    mo.md(r"""
+    # 4. Vorticity with pivpy
 
-        [pivpy](https://github.com/alexlib/pivpy) wraps PIV vector fields in
-        `xarray`, and adds a `.piv` accessor with PIV-specific operations
-        (vorticity, quiver/scalar plots, spatial averages, ...). The idiomatic
-        way to load a directory of OpenPIV output is:
+    [pivpy](https://github.com/alexlib/pivpy) wraps PIV vector fields in
+    `xarray`, and adds a `.piv` accessor with PIV-specific operations
+    (vorticity, quiver/scalar plots, spatial averages, ...). The idiomatic
+    way to load a directory of OpenPIV output is:
 
-        ```python
-        from pivpy import io
-        import pivpy.pivpy  # registers the .piv accessor
-        ds = io.read_directory(results_dir, pattern="field_A*", ext=".txt")
-        ds = ds.piv.vorticity()
-        ```
+    ```python
+    from pivpy import io
+    import pivpy.pivpy  # registers the .piv accessor
+    ds = io.read_directory(results_dir, pattern="field_A*", ext=".txt")
+    ds = ds.piv.vorticity()
+    ```
 
-        **This doesn't work correctly here** — see the callout below — so this
-        notebook loads the fields with a small local helper instead, and uses
-        pivpy for everything downstream (`.piv.vorticity()`, plotting). That
-        split — pivpy for xarray/analysis, hand-rolled I/O — is itself one of
-        the "friction points" this tutorial project set out to find; see
-        `FINDINGS.md`.
-        """
-    )
+    **This doesn't work correctly here** — see the callout below — so this
+    notebook loads the fields with a small local helper instead, and uses
+    pivpy for everything downstream (`.piv.vorticity()`, plotting). That
+    split — pivpy for xarray/analysis, hand-rolled I/O — is itself one of
+    the "friction points" this tutorial project set out to find; see
+    `FINDINGS.md`.
+    """)
     return
 
 
@@ -110,6 +111,7 @@ def _(io, np, xr):
         paths = sorted(results_dir.glob("field_A*.txt"))
         frames = [load_openpiv_field(p, i) for i, p in enumerate(paths)]
         return xr.concat(frames, dim="t")
+
     return (load_openpiv_sequence,)
 
 
@@ -135,15 +137,13 @@ def _(ds):
 
 @app.cell
 def _(mo):
-    mo.md(
-        r"""
-        ## Plot vorticity across the sequence
+    mo.md(r"""
+    ## Plot vorticity across the sequence
 
-        The original repo's README used a fixed uncalibrated color scale of
-        **-0.3 to +0.3 (1/frame)** for all frames, so successive frames are
-        visually comparable. We do the same here.
-        """
-    )
+    The original repo's README used a fixed uncalibrated color scale of
+    **-0.3 to +0.3 (1/frame)** for all frames, so successive frames are
+    visually comparable. We do the same here.
+    """)
     return
 
 
@@ -161,7 +161,7 @@ def _(frame_slider, plt, vort):
     fig_vort, ax_vort = plt.subplots(figsize=(9, 4.5))
     w_frame = vort["w"].isel(t=frame_slider.value)
     im_vort = ax_vort.pcolormesh(
-        w_frame["x"], w_frame["y"], w_frame.values, cmap="jet", vmin=-0.3, vmax=0.3
+        w_frame["x"], w_frame["y"], w_frame.values, cmap="viridis", vmin=-0.3, vmax=0.3
     )
     ax_vort.set_aspect(1)
     ax_vort.set_title(f"vorticity, frame {frame_slider.value}")
@@ -171,22 +171,25 @@ def _(frame_slider, plt, vort):
 
 
 @app.cell
+def _():
+    return
+
+
+@app.cell
 def _(mo):
-    mo.md(
-        r"""
-        ## Takeaway
+    mo.md(r"""
+    ## Takeaway
 
-        Once the field is correctly loaded, pivpy's `.piv` accessor makes
-        vorticity a one-liner (`ds.piv.vorticity()`), and it's differentiated
-        via `xarray`'s `.differentiate`, so it works the same whether `ds` has
-        one frame or the whole sequence. That's the value pivpy adds over
-        hand-rolling numpy gradients per frame — the I/O bug above is a rough
-        edge on the way in, not a problem with pivpy's core `.piv` operations.
+    Once the field is correctly loaded, pivpy's `.piv` accessor makes
+    vorticity a one-liner (`ds.piv.vorticity()`), and it's differentiated
+    via `xarray`'s `.differentiate`, so it works the same whether `ds` has
+    one frame or the whole sequence. That's the value pivpy adds over
+    hand-rolling numpy gradients per frame — the I/O bug above is a rough
+    edge on the way in, not a problem with pivpy's core `.piv` operations.
 
-        Next: **05_compare_to_pivlab.py** — load the equivalent PIVlab result
-        and compare.
-        """
-    )
+    Next: **05_compare_to_pivlab.py** — load the equivalent PIVlab result
+    and compare.
+    """)
     return
 
 

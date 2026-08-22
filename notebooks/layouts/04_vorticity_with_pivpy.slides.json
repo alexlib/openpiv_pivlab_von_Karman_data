@@ -1,0 +1,40 @@
+{
+  "type": "slides",
+  "data": {
+    "cells": [
+      {
+        "type": "skip"
+      },
+      {},
+      {
+        "type": "sub-slide"
+      },
+      {
+        "type": "skip"
+      },
+      {
+        "type": "sub-slide"
+      },
+      {
+        "type": "skip"
+      },
+      {},
+      {},
+      {
+        "type": "slide"
+      },
+      {
+        "type": "fragment"
+      },
+      {
+        "type": "skip"
+      },
+      {
+        "type": "skip"
+      }
+    ],
+    "deck": {
+      "transition": "zoom"
+    }
+  }
+}

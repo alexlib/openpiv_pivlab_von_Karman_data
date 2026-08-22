@@ -50,6 +50,47 @@ Candidate fix upstream (also references pivpy issue #43 "How to replace `io.load
 a `PIVLabSessionReader` alongside the existing `PIVLabReader`, detecting the file variant by its
 top-level keys (`resultslist` present vs. `u_0` present).
 
+## Performance: `validation.local_median_val` is the multipass pipeline's real bottleneck
+
+Profiled a single image pair through the tutorial's 4-pass pipeline (64→32→16→6 px,
+`correlation_method="linear"`, `normalized_correlation=True`, `smoothn=True`) with `cProfile`.
+Total: ~52s instrumented (~35-40s real wall-clock). The biggest cost by far — **~33% of total
+time** — is `openpiv.validation.local_median_val`, called once per pass (on `u` and `v`
+separately, so 8 calls across 4 passes):
+
+```python
+um = generic_filter(masked_u, np.nanmedian, mode='constant', cval=np.nan, size=(3, 3))
+```
+
+`scipy.ndimage.generic_filter` with an arbitrary Python callable invokes that callable **once
+per output pixel** — for our 169×340 finest-pass grid, that's 57,460 individual Python-level
+calls into `np.nanmedian`. This is a well-known scipy anti-pattern: `generic_filter` exists for
+filters with no vectorized equivalent, but a fixed-size local median has one. Direct
+benchmark on a realistic grid:
+
+| approach | time (169×340 grid, 3×3 window, one call) |
+|---|---|
+| `generic_filter(u, np.nanmedian, size=(3,3))` (current) | 3.2s |
+| `sliding_window_view(u_padded, (3,3))` + `np.nanmedian(axis=(-2,-1))` | 0.067s |
+
+Same result (`np.allclose(..., equal_nan=True)` → `True`), **~48x faster**, using only
+`numpy.lib.stride_tricks.sliding_window_view` (no new dependency). Since this runs every pass
+on every image pair, the effect compounds across a sequence — this single change would likely
+cut multi-minute multipass runs dramatically more than any of the other candidates below.
+
+Secondary costs, roughly in order (all much smaller than the above): `preprocess.dynamic_masking`'s
+`scipy.ndimage.median_filter` (`filter_size=21`, ~9s for 2 calls, but fixed per-pair not
+per-pass); `filters.replace_outliers` → `lib.replace_nans` (iterative hole-filling, also
+per-pass). Note `use_vectorized=True` (toggles `vectorized_correlation_to_displacements` for
+the subpixel fit) only gave ~8% wall-clock improvement in a direct A/B timing (43.8s → 40.4s)
+despite looking larger in the profiler — profiler self-time overinflates Python-loop-heavy code,
+so don't trust `cProfile` percentages alone for anything callback-heavy; time it directly too.
+
+Reproduction: `cProfile.run(...)` around `windef.piv(settings)` on any multi-pass sequence;
+`local_median_val` / `generic_filter` dominates `cumulative` time. Candidate fix upstream:
+replace the `generic_filter(..., np.nanmedian, ...)` call in `validation.local_median_val` with
+a `sliding_window_view`-based vectorized local median.
+
 ## Coordinate-convention gotcha (not a bug, but a trap for novices)
 
 PIVlab keeps velocity/vorticity in image-pixel convention (`y` increasing downward, `v` in

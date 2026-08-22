@@ -8,6 +8,7 @@ dependencies = [
     "h5py>=3.16.0",
     "marimo>=0.24.0",
     "matplotlib>=3.11.1",
+    "mcp>=2.0.0",
     "openpiv>=0.25.4",
     "pivpy>=0.1.2",
     "scikit-image>=0.26.0",
